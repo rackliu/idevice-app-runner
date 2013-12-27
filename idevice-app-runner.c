@@ -247,16 +247,17 @@ int main(int argc, char **argv)
         goto leave_cleanup;
     }
 
-    uint16_t port2 = 0;
+    // update:  uint16_t port2 -> lockdownd_service_descriptor_t service
+    lockdownd_service_descriptor_t service = NULL;
     if ((lockdownd_start_service
          (client, "com.apple.debugserver",
-          &port2) != LOCKDOWN_E_SUCCESS) || !port2) {
+          &service) != LOCKDOWN_E_SUCCESS) || !service || !service->port) {
         fprintf(stderr,
                 "Could not start com.apple.debugserver!\n");
         goto leave_cleanup;
     }
 
-    if (idevice_connect(phone, port2, &connection) != IDEVICE_E_SUCCESS) {
+    if (idevice_connect(phone, service->port, &connection) != IDEVICE_E_SUCCESS) {
         fprintf(stderr, "idevice_connect failed!\n");
         goto leave_cleanup;
     }
@@ -267,6 +268,11 @@ int main(int argc, char **argv)
         client = NULL;
     }
 
+    if (service) {
+        lockdownd_service_descriptor_free(service);
+        service = NULL;
+    }
+	
     /* send_str("+", connection); */
 
     char* cmds[] = {
